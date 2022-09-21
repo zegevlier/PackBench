@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "packbench",
+  "version": "${version}",
+  "name": "PackBench",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/PackBench/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "me.zegs.packbench.client.PackBenchClient"
+    ],
+    "main": [
+      "me.zegs.packbench.PackBench"
+    ]
+  },
+  "mixins": [
+    "PackBench.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.9",
+    "fabric": "*",
+    "minecraft": "1.19.2"
+  }
+}
