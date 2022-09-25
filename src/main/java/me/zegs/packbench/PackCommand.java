@@ -67,23 +67,36 @@ public class PackCommand {
     }
 
     private static final CompletableFuture<Unit> COMPLETED_UNIT_FUTURE;
+
     static {
         COMPLETED_UNIT_FUTURE = CompletableFuture.completedFuture(Unit.INSTANCE);
     }
+
     public static int reload(FabricClientCommandSource source) {
         long startTime = System.nanoTime();
         MinecraftClient mc = MinecraftClient.getInstance();
+
+        CompletableFuture<Void> completableFuture = new CompletableFuture();
         mc.getResourcePackManager().scanPacks();
         List<ResourcePack> list = mc.getResourcePackManager().createResourcePacks();
+//        if (!force) {
+//            this.resourceReloadLogger.reload(ResourceReloadLogger.ReloadReason.MANUAL, list);
+//        }
+        ((ReloadableResourceManagerImplInvoker) mc.getResourceManager())
+                .invokeReload(Util.getMainWorkerExecutor(), mc, COMPLETED_UNIT_FUTURE, list)
+                .whenComplete().thenAccept((a) -> {
+                    mc.worldRenderer.reload();
+                    long endTime = System.nanoTime();
+                    long duration = (endTime - startTime) / 1000000;
+                    source.sendFeedback(Text.literal("Reloaded resources in " + duration + "ms"));
+                });
+//        mc.setOverlay(new SplashOverlay(mc, , (throwable) -> {
+//
+////            mc.resourceReloadLogger.finish();
+//        }, true));
 
-        ((ReloadableResourceManagerImplInvoker) mc.getResourceManager()).reload(Util.getMainWorkerExecutor(), mc, COMPLETED_UNIT_FUTURE, list);
-
-        mc.worldRenderer.reload();
 
 
-        long endTime = System.nanoTime();
-        long duration = (endTime - startTime) / 1000000;
-        source.sendFeedback(Text.literal("Reloaded resources in " + duration + "ms"));
         return 1;
     }
 
