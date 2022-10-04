@@ -1,6 +1,7 @@
 package me.zegs.packbench;
 
 import com.mojang.brigadier.CommandDispatcher;
+import me.zegs.packbench.mixins.MinecraftClientAccessor;
 import me.zegs.packbench.mixins.ReloadableResourceManagerImplInvoker;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
@@ -76,15 +77,16 @@ public class PackCommand {
         long startTime = System.nanoTime();
         MinecraftClient mc = MinecraftClient.getInstance();
 
-        CompletableFuture<Void> completableFuture = new CompletableFuture();
         mc.getResourcePackManager().scanPacks();
         List<ResourcePack> list = mc.getResourcePackManager().createResourcePacks();
 //        if (!force) {
 //            this.resourceReloadLogger.reload(ResourceReloadLogger.ReloadReason.MANUAL, list);
 //        }
+        source.sendFeedback(Text.literal("Prepared reload in " + (System.nanoTime() - startTime) / 1000000 + "ms"));
         ((ReloadableResourceManagerImplInvoker) mc.getResourceManager())
                 .invokeReload(Util.getMainWorkerExecutor(), mc, COMPLETED_UNIT_FUTURE, list)
                 .whenComplete().thenAccept((a) -> {
+                    source.sendFeedback(Text.literal("Started world reload in " + (System.nanoTime() - startTime) / 1000000 + "ms"));
                     mc.worldRenderer.reload();
                     long endTime = System.nanoTime();
                     long duration = (endTime - startTime) / 1000000;
@@ -96,14 +98,21 @@ public class PackCommand {
 //        }, true));
 
 
-
         return 1;
     }
 
     public static int bench(FabricClientCommandSource source) {
         PackBench.setLogging(true);
-        MinecraftClient.getInstance().reloadResourcesConcurrently()
-                .thenAccept((_a) -> {
+
+        MinecraftClient mc = MinecraftClient.getInstance();
+        mc.getResourcePackManager().scanPacks();
+        List<ResourcePack> list = mc.getResourcePackManager().createResourcePacks();
+        ((MinecraftClientAccessor) mc).getResourceReloadLogger().reload(ResourceReloadLogger.ReloadReason.MANUAL, list);
+
+        ((ReloadableResourceManagerImplInvoker) mc.getResourceManager())
+                .invokeReload(Util.getMainWorkerExecutor(), mc, COMPLETED_UNIT_FUTURE, list)
+                .whenComplete().thenAccept((a) -> {
+                    ((MinecraftClientAccessor) mc).getResourceReloadLogger().finish();
                     List<PackEvent> events = PackBench.getEvents();
                     PackBench.LOGGER.info("Events: " + events.size());
                     long base_time = events.get(0).getTimestamp();

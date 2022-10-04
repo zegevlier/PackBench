@@ -13,10 +13,6 @@ public class PackBench implements ModInitializer {
 
     private static boolean isLogging = false;
 
-    public static boolean isLogging() {
-        return isLogging;
-    }
-
     public static void setLogging(boolean isLogging) {
         PackBench.isLogging = isLogging;
     }
@@ -33,6 +29,10 @@ public class PackBench implements ModInitializer {
 
     public static void clearEvents() {
         events.clear();
+    }
+
+    public static boolean isLogging() {
+        return isLogging;
     }
 
     @Override
